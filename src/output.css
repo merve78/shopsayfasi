@@ -146,7 +146,7 @@
   }
   img, svg, video, canvas, audio, iframe, embed, object {
     display: block;
-    vertical-align: middle;
+    
   }
   img, video {
     max-width: 100%;
@@ -941,9 +941,7 @@
   .bg-\[\#ffffff\] {
     background-color: #ffffff;
   }
-  .bg-\[\.\/images\/girisresim\.jpg\] {
-    background-color: ./images/girisresim.jpg;
-  }
+
   .bg-black {
     background-color: var(--color-black);
   }
