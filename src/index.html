@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Store Shop</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#f2e9f0] text-gray-800">
+
+  <!-- Başlık -->
+  <header class="text-center lg:h-[500px] bg-[#a49de0]">
+
+<nav class="flex justify-end h-[100px] p-10">
+         <div>
+            <div class="flex justify-end mb-8">
+            <button id="cart-button" class="relative bg-[#a49de0] border-2 border-[#fee82d] text-lg text-gray-100 px-3 font-semibold py-2 rounded"> 🛒 Sepet
+              <span id="cart-count"class="absolute -top-2 -right-2 bg-white text-[#802c6e] text-xs px-2 py-1 rounded-full">0</span>
+            </button>
+            </div>
+
+         <!-- Sepet Modalı -->
+         <div id="cart-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+           <div class="bg-white p-6 rounded-xl w-[90%] max-w-xl relative">
+            <button onclick="closeCart()" class="absolute top-2 right-2 text-gray-500 text-xl">&times;</button>
+            <h2 class="text-xl font-bold mb-4 text-[#802c6e]">Sepetim</h2>
+            <div id="cart-items" class="space-y-4 max-h-80 overflow-y-auto"></div>
+            <p id="cart-total" class="mt-4 font-bold text-right text-[#802c6e]">Toplam: $0</p>
+            </div>
+        </div>
+
+    </div>
+</nav>
+
+<div class="flex items-center w-full mx-auto border-b-8 border-[#fde82d]  ">
+
+    <div class="min-w-[150px] ">
+        <img src="images/01.jpg" alt="foto" class="lg:h-[400px] h-[250px] max-w-full w-auto object-cover ">
+    </div>
+
+</div>
+ 
+  </header>
+
+  <!-- Arama Kutusu -->
+  <div class="flex justify-center my-4">
+    <input type="text" id="search-input" placeholder="Ürün ara..." 
+      class="w-1/2 p-2 border-gray-400 border-2 rounded" />
+  </div>
+
+  <!-- Kategori Butonları -->
+  <section class="relative flex justify-center mb-4">
+    <div id="category-buttons" class="flex gap-2"></div>
+
+    <!-- Kart şeklinde açılan filtre kutusu -->
+    <div id="sub-categories"
+      class="absolute top-14 left-1/2 -translate-x-1/2 bg-white shadow-lg rounded-xl p-4 hidden z-10 w-96">
+      <ul class="grid grid-cols-2 gap-4 list-disc list-inside text-sm text-gray-700">
+        <!-- JavaScript ile kategori listesi eklenecek -->
+      </ul>
+    </div>
+  </section>
+
+  <!-- Ürün Listesi -->
+  <main id="product-list"
+    class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-8">
+  </main>
+
+  <!-- Modal -->
+  <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 ">
+    <div class="bg-white p-6 rounded max-w-md w-full relative">
+      <button onclick="closeModal()" class="absolute top-2 right-2 text-gray-500 text-xl">&times;</button>
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    const categoryButtons = document.getElementById('category-buttons');
+    const subCategoryButtons = document.getElementById('sub-categories');
+    const productList = document.getElementById('product-list');
+    const searchInput = document.getElementById('search-input');
+
+    let allProducts = [];
+    let cart = [];
+
+    async function fetchCategories() {
+      const res = await fetch('https://fakestoreapi.com/products/categories');
+      const categories = await res.json();
+
+      // “Tüm Ürünler” butonu
+      const allBtn = createButton('Tüm Ürünler');
+      allBtn.addEventListener('click', () => displayProducts(allProducts));
+      categoryButtons.appendChild(allBtn);
+
+      // “Ürünlere Göre Filtrele” butonu
+      const filterBtn = createButton('Ürünlere Göre Filtrele');
+      filterBtn.addEventListener('click', () => {
+        subCategoryButtons.classList.toggle('hidden');
+      });
+      categoryButtons.appendChild(filterBtn);
+
+      // Alt kategori listesini oluştur (li olarak)
+      categories.forEach(category => {
+        const li = document.createElement('li');
+        li.textContent = category;
+        li.className = 'cursor-pointer hover:text-blue-600 transition hover:underline px-2 py-1 rounded hover:bg-gray-100';
+        li.addEventListener('click', () => {
+          const filtered = allProducts.filter(p => p.category === category);
+          displayProducts(filtered);
+          subCategoryButtons.classList.add('hidden');
+        });
+        subCategoryButtons.querySelector('ul').appendChild(li);
+      });
+    }
+
+    async function fetchProducts() {
+      const res = await fetch('https://fakestoreapi.com/products');
+      allProducts = await res.json();
+      displayProducts(allProducts);
+    }
+
+    function displayProducts(products) {
+      productList.innerHTML = '';
+
+      products.forEach(product => {
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded shadow hover:shadow-lg transition cursor-pointer';
+
+        card.innerHTML = `
+          <img src="${product.image}" alt="${product.title}" class="h-40 mx-auto object-contain" />
+          <h2 class="mt-2 font-bold text-black text-sm">${product.title}</h2>
+          <p class="text-green-600 font-semibold text-lg">$${product.price}</p>
+          <button class="mt-2 bg-white border-2  border-[#a39cdf] text-[#a39cdf] text-shadow-md font-semibold px-3 py-1 rounded add-to-cart">
+            Sepete Ekle
+          </button>
+        `;
+
+        card.addEventListener('click', () => showProductDetail(product));
+        card.querySelector('.add-to-cart').addEventListener('click', (e) => {
+          e.stopPropagation();
+          addToCart(product);
+        });
+
+        productList.appendChild(card);
+      });
+    }
+
+    function createButton(name) {
+      const btn = document.createElement('button');
+      btn.textContent = name;
+      btn.className = 'px-4 py-2 bg-[#f4d00a] text-black rounded  transition';
+      return btn;
+    }
+
+    function addToCart(product) {
+      cart.push(product);
+      alert(`"${product.title}" sepete eklendi!`);
+    }
+
+    function showProductDetail(product) {
+      const modal = document.getElementById('modal');
+      const content = document.getElementById('modal-content');
+
+      content.innerHTML = `
+        <img src="${product.image}" class="h-40 mx-auto object-contain" />
+        <h2 class="text-xl font-bold mt-4">${product.title}</h2>
+        <p class="text-green-600 font-semibold my-2">$${product.price}</p>
+        <p class="text-gray-700">${product.description}</p>
+      `;
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      document.getElementById('modal').classList.add('hidden');
+    }
+
+    searchInput.addEventListener('input', e => {
+      const searchText = e.target.value.toLowerCase();
+      const filtered = allProducts.filter(p => p.title.toLowerCase().includes(searchText));
+      displayProducts(filtered);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchCategories();
+      fetchProducts();
+    });
+
+    const cartButton = document.getElementById('cart-button');
+const cartModal = document.getElementById('cart-modal');
+const cartItemsDiv = document.getElementById('cart-items');
+const cartTotal = document.getElementById('cart-total');
+const cartCount = document.getElementById('cart-count');
+
+function updateCartUI() {
+  cartItemsDiv.innerHTML = '';
+  let total = 0;
+
+  cart.forEach((item, index) => {
+    total += item.price;
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'flex justify-between items-center border-b pb-2';
+
+    itemDiv.innerHTML = `
+      <div class="flex items-center gap-2">
+        <img src="${item.image}" alt="${item.title}" class="w-12 h-12 object-contain" />
+        <div class="text-sm">
+          <p class="font-semibold text-[#802c6e]">${item.title}</p>
+          <p class="text-green-600">$${item.price.toFixed(2)}</p>
+        </div>
+      </div>
+      <button onclick="removeFromCart(${index})" class="text-red-600 hover:underline text-sm">Sil</button>
+    `;
+
+    cartItemsDiv.appendChild(itemDiv);
+  });
+
+  cartTotal.textContent = `Toplam: $${total.toFixed(2)}`;
+  cartCount.textContent = cart.length;
+}
+
+function removeFromCart(index) {
+  cart.splice(index, 1);
+  updateCartUI();
+}
+
+cartButton.addEventListener('click', () => {
+  updateCartUI();
+  cartModal.classList.remove('hidden');
+  cartModal.classList.add('flex');
+});
+
+function closeCart() {
+  cartModal.classList.add('hidden');
+}
+
+  </script>
+
+<section class=" max-h-[100px]"></section>
+
+<section class="relative h-[600px] mx-4 sm:mx-8 md:mx-16 bg-[url('./images/img-sec.png')] bg-cover bg-center rounded-xl overflow-hidden mb-12">
+  <!-- Karartma katmanı -->
+  <div class="absolute inset-0 bg-black/60"></div>
+
+  <!-- İçerik -->
+  <div class="relative z-10 flex items-center justify-center h-full text-white text-2xl sm:text-3xl md:text-4xl font-semibold">
+     <h1>Çok Yakında !!</h1>
+  </div>
+</section>
+
+<footer class="min-h-[300px]  bg-[#3c2439]">
+    <div class="flex flex-col md:flex-row  justify-between text-white items-center px-6 md:px-36 py-3 min-h-[250px]">
+        <div class="flex flex-col sm:flex-row justify-center items-center gap-10">
+          <div class="flex justify-center items-center gap-4"><a href="1"><img src="images/instagram_214519.png" alt="ins" class="h-8 "></a>İnstagram</div>
+          <div class="flex justify-center items-center gap-4"><a href="2"><img src="images/facebook_1051360.png" alt="faceb" class="h-8 "></a>Facebook</div>
+          <div class="flex justify-center items-center gap-4"><a href="3"><img src="images/twitter_3015802.png" alt="tw" class="h-8 mb-4 "></a>Twitter</div>
+       </div>
+
+       <div class="flex flex-col items-center md:items-end">
+         <div class="mb-2 text-amber-400 ">Abone Ol</div>
+         <div><input type="text" placeholder="📧 E-posta" class="border-2 border-amber-400 px-6 py-2 bg-black text-white rounded-xl" ></div>
+        
+       </div>
+    </div>
+   <div class=" flex justify-center text-center text-white text-lg font-serif py-4 px-1"><h1>Telif Hakkı © 2010- 2025 Tüm hakları saklıdır.</h1></div>
+</footer>
+
+</body>
+</html>
